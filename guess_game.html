@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess It! 🎯</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#1A0B2E;
+    --bg-deep-2:#2D1454;
+    --pink:#FF2E92;
+    --yellow:#FFD60A;
+    --cyan:#00F5D4;
+    --orange:#FF6B35;
+    --text:#F5F0FF;
+    --text-dim:#B8A9D9;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,46,146,0.25), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(0,245,212,0.2), transparent 40%),
+      linear-gradient(160deg, var(--bg-deep) 0%, var(--bg-deep-2) 100%);
+    font-family:'Poppins', sans-serif;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    overflow-x:hidden;
+  }
+
+  .stage{
+    width:100%;
+    max-width:480px;
+    position:relative;
+  }
+
+  .title{
+    font-family:'Fredoka', sans-serif;
+    font-weight:700;
+    font-size:clamp(2.2rem, 8vw, 3.2rem);
+    text-align:center;
+    letter-spacing:-1px;
+    line-height:1;
+    margin-bottom:6px;
+    background:linear-gradient(90deg, var(--pink), var(--yellow), var(--cyan));
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:shine 6s linear infinite;
+  }
+  @keyframes shine{
+    to{ background-position:200% center; }
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.95rem;
+    margin-bottom:28px;
+    font-weight:500;
+  }
+
+  .card{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.12);
+    backdrop-filter:blur(14px);
+    border-radius:28px;
+    padding:28px 24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    position:relative;
+  }
+
+  /* ---- Difficulty screen ---- */
+  .diff-grid{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .diff-btn{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 20px;
+    border-radius:18px;
+    border:2px solid transparent;
+    cursor:pointer;
+    font-family:'Fredoka', sans-serif;
+    font-weight:600;
+    font-size:1.1rem;
+    color:var(--bg-deep);
+    transition:transform .15s ease, box-shadow .15s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .diff-btn:active{ transform:scale(0.97); }
+  .diff-btn:hover{ transform:translateY(-3px); box-shadow:0 10px 24px rgba(0,0,0,0.35); }
+  .diff-btn.easy{ background:linear-gradient(135deg, var(--cyan), #7CF9E0); }
+  .diff-btn.medium{ background:linear-gradient(135deg, var(--yellow), #FFEA82); }
+  .diff-btn.hard{ background:linear-gradient(135deg, var(--pink), #FF7CC0); }
+  .diff-btn .meta{
+    font-family:'Poppins', sans-serif;
+    font-weight:500;
+    font-size:0.78rem;
+    opacity:0.75;
+  }
+
+  /* ---- Game screen ---- */
+  .hidden{ display:none !important; }
+
+  .hud{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:22px;
+    gap:12px;
+  }
+  .pill{
+    flex:1;
+    text-align:center;
+    background:rgba(255,255,255,0.08);
+    border-radius:16px;
+    padding:10px 8px;
+  }
+  .pill .num{
+    font-family:'Fredoka', sans-serif;
+    font-size:1.5rem;
+    font-weight:700;
+  }
+  .pill .lbl{
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--text-dim);
+    font-weight:600;
+  }
+  .pill.range .num{ color:var(--cyan); }
+  .pill.attempts .num{ color:var(--yellow); }
+
+  /* Thermometer / gauge */
+  .gauge-wrap{
+    margin:8px 0 22px;
+  }
+  .gauge-track{
+    position:relative;
+    height:18px;
+    border-radius:999px;
+    background:linear-gradient(90deg, #3AA0FF, #7CF9E0 30%, var(--yellow)50%, var(--orange) 70%, var(--pink) 100%);
+    opacity:0.35;
+  }
+  .gauge-marker{
+    position:absolute;
+    top:50%;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:#fff;
+    border:4px solid var(--bg-deep-2);
+    transform:translate(-50%,-50%);
+    left:50%;
+    transition:left .5s cubic-bezier(.34,1.56,.64,1);
+    box-shadow:0 0 0 4px rgba(255,255,255,0.15);
+  }
+
+  .feedback{
+    text-align:center;
+    font-family:'Fredoka', sans-serif;
+    font-size:1.5rem;
+    font-weight:700;
+    min-height:46px;
+    margin-bottom:18px;
+    transition:transform .2s ease;
+  }
+  .feedback.pop{ animation:pop .35s ease; }
+  @keyframes pop{
+    0%{ transform:scale(0.7); }
+    60%{ transform:scale(1.08); }
+    100%{ transform:scale(1); }
+  }
+  .feedback.low{ color:#3AA0FF; }
+  .feedback.high{ color:var(--orange); }
+  .feedback.win{ color:var(--cyan); }
+  .feedback.lose{ color:var(--pink); }
+  .feedback.idle{ color:var(--text-dim); font-size:1rem; font-weight:500; }
+
+  .input-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:8px;
+  }
+  input[type=number]{
+    flex:1;
+    font-family:'Fredoka', sans-serif;
+    font-size:1.3rem;
+    font-weight:600;
+    text-align:center;
+    padding:14px;
+    border-radius:16px;
+    border:2px solid rgba(255,255,255,0.15);
+    background:rgba(0,0,0,0.25);
+    color:var(--text);
+    outline:none;
+    transition:border-color .2s ease;
+  }
+  input[type=number]:focus{ border-color:var(--cyan); }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .btn{
+    font-family:'Fredoka', sans-serif;
+    font-weight:600;
+    font-size:1.05rem;
+    border:none;
+    border-radius:16px;
+    padding:14px 22px;
+    cursor:pointer;
+    color:var(--bg-deep);
+    background:linear-gradient(135deg, var(--yellow), var(--orange));
+    transition:transform .15s ease;
+  }
+  .btn:active{ transform:scale(0.95); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .btn.secondary{
+    width:100%;
+    margin-top:8px;
+    background:linear-gradient(135deg, var(--pink), #C724E0);
+    color:#fff;
+  }
+
+  .history{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:16px;
+    min-height:24px;
+  }
+  .chip{
+    font-size:0.75rem;
+    font-weight:600;
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.1);
+    color:var(--text-dim);
+  }
+  .chip.low{ color:#3AA0FF; }
+  .chip.high{ color:var(--orange); }
+  .chip.win{ color:var(--cyan); background:rgba(0,245,212,0.15); }
+
+  /* confetti */
+  .confetti{
+    position:fixed;
+    top:-10px;
+    width:8px; height:14px;
+    border-radius:2px;
+    opacity:0.9;
+    pointer-events:none;
+    animation:fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="title">Guess It!</div>
+  <div class="subtitle" id="subtitle">Pick your challenge and crack the number 🎯</div>
+
+  <div class="card">
+
+    <!-- DIFFICULTY SELECT -->
+    <div id="diffScreen">
+      <div class="diff-grid">
+        <button class="diff-btn easy" data-limit="50" data-attempts="10">
+          Easy <span class="meta">1–50 · 10 tries</span>
+        </button>
+        <button class="diff-btn medium" data-limit="100" data-attempts="7">
+          Medium <span class="meta">1–100 · 7 tries</span>
+        </button>
+        <button class="diff-btn hard" data-limit="200" data-attempts="5">
+          Hard <span class="meta">1–200 · 5 tries</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="hidden">
+      <div class="hud">
+        <div class="pill range">
+          <div class="num" id="rangeLabel">1–100</div>
+          <div class="lbl">Range</div>
+        </div>
+        <div class="pill attempts">
+          <div class="num" id="attemptsLeft">7</div>
+          <div class="lbl">Left</div>
+        </div>
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge-track"></div>
+        <div class="gauge-marker" id="marker"></div>
+      </div>
+
+      <div class="feedback idle" id="feedback">Type a number and hit Guess 👇</div>
+
+      <div class="input-row">
+        <input type="number" id="guessInput" placeholder="?" />
+        <button class="btn" id="guessBtn">Guess</button>
+      </div>
+
+      <div class="history" id="history"></div>
+
+      <button class="btn secondary hidden" id="playAgainBtn">Play again 🔁</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const diffScreen = document.getElementById('diffScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const subtitle = document.getElementById('subtitle');
+  const rangeLabel = document.getElementById('rangeLabel');
+  const attemptsLeftEl = document.getElementById('attemptsLeft');
+  const feedback = document.getElementById('feedback');
+  const guessInput = document.getElementById('guessInput');
+  const guessBtn = document.getElementById('guessBtn');
+  const marker = document.getElementById('marker');
+  const history = document.getElementById('history');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  let limit, totalAttempts, attemptsUsed, target, gameOver;
+
+  document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      limit = parseInt(btn.dataset.limit);
+      totalAttempts = parseInt(btn.dataset.attempts);
+      startGame();
+    });
+  });
+
+  function startGame(){
+    attemptsUsed = 0;
+    gameOver = false;
+    target = Math.floor(Math.random() * limit) + 1;
+
+    diffScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    playAgainBtn.classList.add('hidden');
+    guessInput.disabled = false;
+    guessBtn.disabled = false;
+
+    rangeLabel.textContent = `1–${limit}`;
+    attemptsLeftEl.textContent = totalAttempts;
+    subtitle.textContent = `I'm thinking of a number between 1 and ${limit}...`;
+    feedback.className = 'feedback idle';
+    feedback.textContent = 'Type a number and hit Guess 👇';
+    marker.style.left = '50%';
+    history.innerHTML = '';
+    guessInput.value = '';
+    guessInput.min = 1;
+    guessInput.max = limit;
+    guessInput.focus();
+  }
+
+  function submitGuess(){
+    if(gameOver) return;
+    const val = guessInput.value.trim();
+    if(val === '' || isNaN(val)) return;
+    const guess = parseInt(val);
+    if(guess < 1 || guess > limit) {
+      flashFeedback(`Stay between 1 and ${limit}!`, 'high');
+      return;
+    }
+
+    attemptsUsed++;
+    const remaining = totalAttempts - attemptsUsed;
+    attemptsLeftEl.textContent = Math.max(remaining, 0);
+
+    const pct = ((guess - 1) / (limit - 1)) * 100;
+    marker.style.left = pct + '%';
+
+    if(guess === target){
+      flashFeedback(`👌 Correct! Won in ${attemptsUsed} attempt${attemptsUsed>1?'s':''}!`, 'win');
+      addChip(guess, 'win');
+      endGame(true);
+    } else if(guess < target){
+      flashFeedback('Too Low! 📈', 'low');
+      addChip(guess, 'low');
+    } else {
+      flashFeedback('Too High! 📉', 'high');
+      addChip(guess, 'high');
+    }
+
+    if(guess !== target && remaining <= 0){
+      flashFeedback(`😥 Out of attempts! It was ${target}.`, 'lose');
+      endGame(false);
+    }
+
+    guessInput.value = '';
+    guessInput.focus();
+  }
+
+  function flashFeedback(text, cls){
+    feedback.className = `feedback ${cls} pop`;
+    feedback.textContent = text;
+    void feedback.offsetWidth;
+    feedback.classList.add('pop');
+  }
+
+  function addChip(guess, cls){
+    const chip = document.createElement('span');
+    chip.className = `chip ${cls}`;
+    chip.textContent = guess;
+    history.appendChild(chip);
+  }
+
+  function endGame(won){
+    gameOver = true;
+    guessInput.disabled = true;
+    guessBtn.disabled = true;
+    playAgainBtn.classList.remove('hidden');
+    subtitle.textContent = won ? 'Nailed it! 🎉' : 'Better luck next round.';
+    if(won) launchConfetti();
+  }
+
+  guessBtn.addEventListener('click', submitGuess);
+  guessInput.addEventListener('keydown', e => {
+    if(e.key === 'Enter') submitGuess();
+  });
+
+  playAgainBtn.addEventListener('click', () => {
+    diffScreen.classList.remove('hidden');
+    gameScreen.classList.add('hidden');
+    subtitle.textContent = 'Pick your challenge and crack the number 🎯';
+  });
+
+  function launchConfetti(){
+    const colors = ['#FF2E92', '#FFD60A', '#00F5D4', '#FF6B35', '#C724E0'];
+    for(let i = 0; i < 60; i++){
+      const piece = document.createElement('div');
+      piece.className = 'confetti';
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+      piece.style.animationDuration = (2 + Math.random()*1.5) + 's';
+      piece.style.opacity = 0.7 + Math.random()*0.3;
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), 3600);
+    }
+  }
+</script>
+
+</body>
+</html>
